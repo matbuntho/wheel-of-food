@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>The Great Wheel of Food</title>
+  <style>
+    :root {
+      --bg: #0b0c0f;
+      --panel: #12141a;
+      --text: #e8eaf0;
+      --muted: #a7adbb;
+      --accent: #86e3ce;
+      --accent-2: #f6d06f;
+      --ring: #ffffff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 24px;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--text); background: radial-gradient(1200px 800px at 10% -10%, #1e2030, var(--bg));
+    }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    h1 { font-size: 28px; margin: 0 0 8px; letter-spacing: 0.2px; }
+    p.lead { margin: 0 0 20px; color: var(--muted); }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 20px;
+      align-items: start;
+    }
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px; padding: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      backdrop-filter: blur(4px);
+    }
+    button {
+      width: 100%;
+      border: none; border-radius: 12px;
+      font-size: 18px; font-weight: 700;
+      padding: 14px 16px; cursor: pointer;
+      color: #0f1116; background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      box-shadow: 0 8px 18px rgba(0,0,0,0.35);
+      transition: transform 0.05s ease;
+    }
+    button:active { transform: scale(0.98); }
+    .hint { color: var(--muted); font-size: 13px; margin-top: 8px; }
+    textarea, input[type="text"] {
+      width: 100%; color: var(--text); background: #0f1116;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px; padding: 12px; font-size: 14px;
+      resize: vertical;
+    }
+    details summary {
+      cursor: pointer;
+      color: var(--text);
+      padding: 4px 0;
+      font-weight: 600;
+      list-style: none;
+    }
+    details summary::-webkit-details-marker { display: none; }
+    .result {
+      font-size: 20px; font-weight: 800;
+      padding: 12px; border-radius: 12px; margin-top: 10px;
+      color: #0f1116; background: #b6f0ff;
+    }
+    .wheel-box { display: grid; place-items: center; }
+    .pointer {
+      width: 0; height: 0;
+      border-left: 14px solid transparent;
+      border-right: 14px solid transparent;
+      border-bottom: 22px solid var(--ring);
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.35));
+      margin-bottom: -8px;
+      z-index: 5;
+    }
+    .footer { margin-top: 20px; color: var(--muted); font-size: 13px; }
+    .label {
+      position: absolute;
+      left: 50%; top: 50%;
+      transform-origin: 0 0;
+      font-size: 14px; font-weight: 700;
+      color: #0b0c0f;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.75);
+      user-select: none;
+      pointer-events: none;
+    }
+    .legend { font-size: 13px; color: var(--muted); margin-top: 8px; }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0;
+      margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🍽️ The Great Wheel of Food</h1>
+    <p class="lead">Click <b>Spin</b> and let the wheel choose dinner.</p>
+
+    <div class="grid">
+      <!-- Left: Controls -->
+      <div class="card">
+        <button id="spinBtn">🎯 Spin the wheel</button>
+        <div id="result" class="result" style="display:none;"></div>
+
+        <details style="margin-top:14px;">
+          <summary>✏️ Edit options</summary>
+          <p class="hint">Write one option per line, then press <b>Save options</b>.</p>
+          <textarea id="optionsText" rows="10">Thai
+Vietnamese
+Burger
+Pizza
+Amager by Night
+Smørrebrød
+Kebab
+Mexican</textarea>
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button id="saveBtn" style="width:auto; padding:10px 14px;">Save options</button>
+            <button id="resetBtn" style="width:auto; padding:10px 14px; background:#d1d5db;">Reset</button>
+          </div>
+          <div class="legend">Tip: You need at least 2 options.</div>
+        </details>
+
+        <details style="margin-top:12px;">
+          <summary>⚙️ Settings</summary>
+          <label class="hint" for="spins">How dramatic? (number of spins)</label>
+          <input id="spins" type="text" value="4-6" />
+          <div class="hint">Use a single number (e.g., <code>5</code>) or a range like <code>3-7</code>.</div>
+        </details>
+
+        <div class="footer">Made for fun. Works fully offline—just open this file.</div>
+      </div>
+
+      <!-- Right: Wheel -->
+      <div class="card wheel-box">
+        <div class="pointer" aria-hidden="true"></div>
+        <div style="position:relative; width:340px; height:340px;">
+          <canvas id="wheel" width="340" height="340" aria-label="Spinning wheel"></canvas>
+          <div id="labelsLayer" aria-hidden="true"></div>
+        </div>
+        <div class="hint">The pointer shows the winner at the top.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sr-only" aria-live="polite" id="ariaLive"></div>
+
+  <script>
+    // ---------- Helpers ----------
+    const wheelCanvas = document.getElementById('wheel');
+    const ctx = wheelCanvas.getContext('2d');
+    const labelsLayer = document.getElementById('labelsLayer');
+    const spinBtn = document.getElementById('spinBtn');
+    const resultEl = document.getElementById('result');
+    const ariaLive = document.getElementById('ariaLive');
+
+    const DEFAULTS = ["Thai","Vietnamese","Burger","Pizza","Amager by Night","Smørrebrød","Kebab","Mexican"];
+    let options = [...DEFAULTS];
+
+    let currentAngle = -Math.PI/2; // start at top
+    let animating = false;
+
+    function parseOptionsFromTextarea() {
+      const raw = document.getElementById('optionsText').value
+        .split(/\\r?\\n/)
+        .map(s => s.trim())
+        .filter(Boolean);
+      return raw.length >= 2 ? raw : null;
+    }
+
+    function parseSpins() {
+      const val = (document.getElementById('spins').value || '').trim();
+      if (/^\\d+$/.test(val)) return parseInt(val, 10);
+      const m = val.match(/^(\\d+)\\s*-\\s*(\\d+)$/);
+      if (m) {
+        const a = parseInt(m[1], 10), b = parseInt(m[2], 10);
+        if (b >= a) return a + Math.floor(Math.random() * (b - a + 1));
+      }
+      return 5;
+    }
+
+    function hsl(i, total) {
+      const h = Math.round(360 * i / total);
+      return `hsl(${h} 75% 60%)`;
+    }
+
+    function drawWheel() {
+      const W = wheelCanvas.width, H = wheelCanvas.height;
+      const cx = W/2, cy = H/2;
+      const r = Math.min(W, H)/2 - 6;
+
+      // Clear
+      ctx.clearRect(0,0,W,H);
+
+      const n = options.length;
+      const slice = 2 * Math.PI / n;
+
+      // Rim
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(currentAngle);
+      for (let i = 0; i < n; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0,0);
+        ctx.arc(0,0,r, i*slice, (i+1)*slice);
+        ctx.closePath();
+        ctx.fillStyle = hsl(i, n);
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'white';
+        ctx.stroke();
+      }
+      // Center
+      ctx.beginPath();
+      ctx.arc(0,0,10,0,2*Math.PI);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#111';
+      ctx.stroke();
+      ctx.restore();
+
+      // Labels (HTML layer for crisp text)
+      labelsLayer.innerHTML = '';
+      labelsLayer.style.position = 'absolute';
+      labelsLayer.style.inset = '0';
+      labelsLayer.style.pointerEvents = 'none';
+
+      for (let i = 0; i < n; i++) {
+        const mid = (i + 0.5) * slice + currentAngle;
+        const rx = cx + Math.cos(mid) * r * 0.62;
+        const ry = cy + Math.sin(mid) * r * 0.62;
+
+        const div = document.createElement('div');
+        div.className = 'label';
+        div.textContent = options[i];
+        div.style.left = rx + 'px';
+        div.style.top = ry + 'px';
+        // rotate opposite of wheel so text stays upright-ish
+        const deg = (mid * 180/Math.PI);
+        div.style.transform = `translate(-50%, -50%) rotate(${-deg}deg)`;
+        labelsLayer.appendChild(div);
+      }
+    }
+
+    function rotationToIndex(idx) {
+      // Compute angle so that slice's center lands at top (-90deg)
+      const n = options.length;
+      const slice = 2 * Math.PI / n;
+      // target angle (absolute): when mid-angle aligns to -90deg
+      const targetMid = -Math.PI/2; // top
+      const sliceMid = (idx + 0.5) * slice;
+      // We rotate wheel so that (sliceMid + rotation) = targetMid  => rotation = targetMid - sliceMid
+      let base = targetMid - sliceMid;
+      // Normalize to near future from currentAngle
+      const delta = ((base - currentAngle) % (2*Math.PI) + 2*Math.PI) % (2*Math.PI);
+      const spins = parseSpins();
+      return currentAngle + delta + spins * 2*Math.PI;
+    }
+
+    function pickRandomIndex() {
+      return Math.floor(Math.random() * options.length);
+    }
+
+    function indexAtPointer() {
+      // Which slice is at top given currentAngle
+      const n = options.length;
+      const slice = 2 * Math.PI / n;
+      // The slice whose mid is closest to top (-PI/2) in rotated space
+      let a = (-Math.PI/2 - currentAngle) % (2*Math.PI);
+      if (a < 0) a += 2*Math.PI;
+      const idx = Math.floor((a) / slice + 0.5) % n;
+      return idx;
+    }
+
+    function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+    function animateTo(targetAngle, durationMs = 3000) {
+      const start = performance.now();
+      const from = currentAngle;
+      const diff = targetAngle - from;
+      animating = true;
+      resultEl.style.display = 'none';
+
+      function step(now) {
+        const t = Math.min(1, (now - start) / durationMs);
+        const e = easeOutCubic(t);
+        currentAngle = from + diff * e;
+        drawWheel();
+        if (t < 1) requestAnimationFrame(step);
+        else {
+          animating = false;
+          const idx = indexAtPointer();
+          const winner = options[idx];
+          resultEl.textContent = "🥳 Tonight: " + winner;
+          resultEl.style.display = 'block';
+          ariaLive.textContent = "Result: " + winner;
+        }
+      }
+      requestAnimationFrame(step);
+    }
+
+    // ---------- UI events ----------
+    spinBtn.addEventListener('click', () => {
+      if (animating) return;
+      const idx = pickRandomIndex();
+      const target = rotationToIndex(idx);
+      animateTo(target);
+    });
+
+    document.getElementById('saveBtn').addEventListener('click', () => {
+      const parsed = parseOptionsFromTextarea();
+      if (!parsed) {
+        alert('Please enter at least 2 options.');
+        return;
+      }
+      options = parsed;
+      drawWheel();
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      document.getElementById('optionsText').value = DEFAULTS.join('\\n');
+      options = [...DEFAULTS];
+      drawWheel();
+    });
+
+    // Init
+    drawWheel();
+  </script>
+</body>
+</html>
